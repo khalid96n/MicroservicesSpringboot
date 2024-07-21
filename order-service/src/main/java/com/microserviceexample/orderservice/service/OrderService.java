@@ -23,7 +23,7 @@ public class OrderService {
     private  OrderRepository orderRepository;
 
     @Autowired
-    private WebClient webClient;
+    private WebClient.Builder webClientBuilder;
     public void  placeOrder(OrderRequest orderRequest){
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
@@ -37,13 +37,13 @@ public class OrderService {
         List<String> skuCodes = order.getOrderLinesItemsList().stream().map(OrderLinesItems::getSkuCode)
                 .toList();
 
-        InventoryResponse[] inventoryResponses = webClient.get()
-                .uri("http://localhost:8082/api/inventory",
+        InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
+                .uri("http://inventory-service/api/inventory",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
                 .retrieve()
                 .bodyToMono(InventoryResponse[].class)
                 .block();
-        boolean allProductStock = Arrays.stream(inventoryResponses).allMatch(InventoryResponse::getIsInStock);
+        boolean allProductStock = Arrays.stream(inventoryResponseArray).allMatch(InventoryResponse::getIsInStock);
 
         if (allProductStock){
                 orderRepository.save(order);
